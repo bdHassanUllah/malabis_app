@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class CategoriesScreen extends StatelessWidget {
+class SearchScreen extends StatelessWidget {
   final List<Map<String, String>> categories = [
     {"image": "assets/images/adhesive.png", "name": "Adhesive"},
     {"image": "assets/images/cleaner.png", "name": "All Purpose Cleaner"},

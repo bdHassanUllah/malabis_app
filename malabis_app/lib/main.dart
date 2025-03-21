@@ -1,19 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 import 'package:malabis_app/Screens/splash_screen.dart';
+import 'package:malabis_app/StateProvider/NavStateProvider.dart';
+import 'package:malabis_app/Widgets/bottomNavBar_widgets.dart';
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  Get.put(NavigationController()); // ✅ Initialize GetX NavigationController
+  runApp(
+    ProviderScope( // ✅ Wrap with ProviderScope to enable Riverpod
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      home: SplashScreen(), //Calling the class
+      title: 'Malabis App',
+      home: SplashScreen(), // ✅ Start from SplashScreen
+    );
+  }
+}
+
+class MainScreen extends StatelessWidget {
+  final NavigationController navController = Get.find(); // ✅ Use Get.find()
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Obx(() => IndexedStack(
+            index: navController.selectedIndex.value,
+            children: navController.pages,
+          )),
+      bottomNavigationBar: BottomNavBarWidget(),
     );
   }
 }

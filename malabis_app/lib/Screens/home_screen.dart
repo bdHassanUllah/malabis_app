@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:malabis_app/Screens/category_screen.dart';
+import 'package:malabis_app/DetailScreen/productdetailscreen.dart';
+import 'package:malabis_app/screens/search_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   final List<String> carouselImages = [
@@ -71,47 +72,47 @@ class HomeScreen extends StatelessWidget {
               ),
               itemCount: products.length,
               itemBuilder: (context, index) {
-                return Card(
-                  child: Column(
-                    children: [
-                      Image.asset(products[index]['image']!),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text(products[index]['name']!),
+                return GestureDetector(
+                  onTap: () {
+                    // Navigate to PostDetailScreen with product details
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProductDetailScreen(),
                       ),
-                      Text(
-                        products[index]['price']!,
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.shopping_cart, color: Colors.orange),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CategoriesScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                    );
+                  },
+                  child: Card(
+                    child: Column(
+                      children: [
+                        Image.asset(products[index]['image']!),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(products[index]['name']!),
+                        ),
+                        Text(
+                          products[index]['price']!,
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.shopping_cart, color: Colors.orange),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SearchScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: "Cart",
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
       ),
     );
   }

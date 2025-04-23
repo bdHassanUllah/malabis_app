@@ -1,7 +1,11 @@
 const String splash = '/splash';
 const String welcomescreen = '/welcomescreen';
 const String homePage = '/homePage';
+const String detailscreen = '/detailscreen';
 const String cartscreen= '/cartscreen';
 const String addProfile = '/addProfile';
 const String bottomNavBar = '/bottomNavBar';
 const String verifyEmail = '/verifyEmail';
+const String orderscreen = '/orderscreen';
+const String summary = '/summary';
+const String accounts = '/accounts';

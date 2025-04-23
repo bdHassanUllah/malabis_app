@@ -1,41 +1,17 @@
-import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:malabis_app/data/providers/home_provider.dart';
-import 'package:malabis_app/data/providers/init_provider.dart';
+// lib/data/repositories/home_repository.dart
+import 'package:malabis_app/apifiles/api.dart';
+import 'package:malabis_app/data/model/product_model.dart.dart';
 
 class HomeRepository {
-  final homeProvider = HomeProvider(InitProvider().client);
+  final WordPressApi api;
 
-  Future<QueryResult> getCategoriesList() async {
-    final result = homeProvider.getCategoriesList();
-    return result;
-  }
-  Future<QueryResult> getBannerImages() async {
-    final result = homeProvider.getBannerImages();
-    return result;
-  }
+  HomeRepository({required this.api});
 
-  Future<QueryResult> getProductsList(Map<String, dynamic> varibale) async {
-    final result = homeProvider.getProductList(varibale);
-    return result;
-  }
-
-  Future<QueryResult> searchProducts(Map<String, dynamic> varibale) async {
-    final result = homeProvider.searchProducts(varibale);
-    return result;
-  }
-
-  Future<QueryResult> getSuggestions(Map<String, dynamic> varibale) async {
-    final result = homeProvider.getSuggestions(varibale);
-    return result;
-  }
-
-  Future<QueryResult> addToFav(Map<String, dynamic> varibale) async {
-    final result = homeProvider.addToFav(varibale);
-    return result;
-  }
-
-  Future<QueryResult> fetchFav(Map<String, dynamic> varibale) async {
-    final result = homeProvider.fetchFav(varibale);
-    return result;
+  Future<List<Product>> getProducts() async {
+    try {
+      return await api.fetchProducts();
+    } catch (e) {
+      throw Exception('Failed to load products: $e');
+    }
   }
 }

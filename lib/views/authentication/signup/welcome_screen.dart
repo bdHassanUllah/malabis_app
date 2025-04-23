@@ -1,124 +1,148 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:malabis_app/functions/custom_button_function.dart';
-import 'package:malabis_app/functions/socialMedai_button_function.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:malabis_app/logic/authentication/authentication_cubit.dart';
 import 'package:malabis_app/logic/authentication/authentication_state.dart';
-import 'package:malabis_app/views/splash_screen.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthenticationCubit, AuthenticationState>(
-      listener: (context, state) {
-        if (state.error != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.error!)),
-          );
-        }
-        if (state.loggedIn) {
-          // Navigate to home screen when logged in
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => SplashScreen()),
-          );
-        }
-      },
-      child: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: Scaffold(
-          backgroundColor: Colors.white,
-          body: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  "Welcome!",
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  "Log in or Sign up to continue",
-                  style: TextStyle(fontSize: 16, color: Colors.black54),
-                ),
-                const SizedBox(height: 30),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Login'),
+      ),
+      body: BlocBuilder<AuthCubit, AuthState>(
+        builder: (context, state) {
+          // Handle loading state
+          if (state is AuthLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-                // Login Button
-                Center(
-                  child: CustomButtonWidget(
-                    text: "Login",
-                    color: Colors.amber.shade700,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => SplashScreen()),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 15),
+          // Handle authenticated state
+          if (state is AuthAuthenticated) {
+            final authCubit = context.read<AuthCubit>();
+            final userId = authCubit.signInWithGoogle();
 
-                // Sign Up Button
-                Center(
-                  child: CustomButtonWidget(
-                    text: "Sign Up",
-                    textColor: Colors.amber.shade700,
-                    borderColor: Colors.amber.shade700,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => SplashScreen()),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 20),
+            // If userId is available, attempt WooCommerce customer creation
+            Future.delayed(Duration.zero, () {
+              createWooCommerceCustomer(authCubit, context);
+              print("User ID: $userId");
+            });
+          
+            // After user is authenticated, show the user is signed in
+            return const Center(child: Text('User is signed in'));
+          }
 
-                // OR Divider
-                Row(
-                  children: const [
-                    Expanded(child: Divider(color: Colors.black26)),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 10.0),
-                      child: Text("or", style: TextStyle(color: Colors.black54)),
-                    ),
-                    Expanded(child: Divider(color: Colors.black26)),
-                  ],
-                ),
-                const SizedBox(height: 20),
+          // Handle errors during authentication
+          if (state is AuthError) {
+            return Center(child: Text('Error: ${state.message}'));
+          }
 
-                // Social Login Buttons
-                SocialLoginButton(
-                  //FontAwesomeIcons.apple,
-                  iconColor: Colors.black,
-                  text: "Continue With iCloud", 
-                  icon: FontAwesomeIcons.apple,
-                ),
-                const SizedBox(height: 10),
-                BlocBuilder<AuthenticationCubit, AuthenticationState>(
-                  builder: (context, state) {
-                  return 
-                    SocialLoginButton(
-                      //FontAwesomeIcons.google,
-                      iconColor: Color(0xFF4285F4), // Fixed the color code
-                      text: "Continue With Google",
-                      icon: FontAwesomeIcons.google,
-                      onPressed: state.isLoading
-                          ? null
-                          : () => context.read<AuthenticationCubit>().signInWithGoogle(),
-                      isLoading: state.isLoading,
-                    );
-                  },
-                ),
-              ],
+          // Default state when user is unauthenticated
+          return Center(
+            child: ElevatedButton(
+              onPressed: () {
+                // Trigger Google Sign-In and handle user data after successful sign-in
+                context.read<AuthCubit>().signInWithGoogle().then((_) {
+                  final authCubit = context.read<AuthCubit>();
+                  final userId = authCubit.signInWithGoogle();
+                  // Trigger WooCommerce customer creation after sign-in
+                  Future.delayed(Duration.zero, () {
+                    createWooCommerceCustomer(authCubit, context);
+                  });
+                                }).catchError((error) {
+                  // Handle any errors in sign-in
+                  print('Error during sign-in: $error');
+                });
+              },
+              child: const Text('Sign In with Google'),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
+  }
+
+  // Function to create WooCommerce customer
+  Future<void> createWooCommerceCustomer(AuthCubit authCubit, BuildContext context) async {
+    try {
+      final response = await createCustomerInWooCommerce(authCubit); // Your API call here
+
+      if (response['success']) {
+        print("User successfully created in WooCommerce.");
+        // Display success icon
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Success'),
+            content: Row(
+              children: const [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 10),
+                Text('User successfully created in WooCommerce'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        print("Failed to create user in WooCommerce: ${response['message']}");
+        // Display failure icon
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Failure'),
+            content: Row(
+              children: const [
+                Icon(Icons.error, color: Colors.red),
+                SizedBox(width: 10),
+                Text('Failed to create user in WooCommerce'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      print("Error creating user in WooCommerce: $e");
+      // Display error icon
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Error'),
+          content: Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.orange),
+              const SizedBox(width: 10),
+              Text('Error: $e'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  // Mock function to simulate creating a customer in WooCommerce (replace with actual API call)
+  Future<Map<String, dynamic>> createCustomerInWooCommerce(AuthCubit authCubit) async {
+    // Simulating a response (replace with real API call)
+    await Future.delayed(const Duration(seconds: 2));
+    return {'success': true, 'message': 'User created successfully'}; // Mock response
   }
 }

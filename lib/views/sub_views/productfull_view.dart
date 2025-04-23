@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:malabis_app/data/model/cart_model.dart';
+import 'package:malabis_app/data/model/product_model.dart.dart'; //Ensure this is the correct path for CartItem
 import 'package:malabis_app/logic/cart/cart_cubit.dart';
+import 'package:malabis_app/logic/cart/cart_state.dart';
+import 'package:malabis_app/logic/whishlist/whishlistcubit.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final Map<String, dynamic> product;
@@ -18,12 +21,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
-    final price = double.tryParse(product['price'].toString()) ?? 0;
-    final reward = int.tryParse(product['reward'].toString()) ?? 0;
+    //final price = double.tryParse(product['price'].toString()) ?? 0;
+    final images = product['images'] ?? '';
     final productId = int.tryParse(product['id'].toString()) ?? 0;
-
-    final cartCubit = context.watch<CartCubit>();
-    final isInCart = cartCubit.state.cartList.any((item) => item.product_id == productId);
 
     return Scaffold(
       body: SafeArea(
@@ -40,24 +40,59 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
-                const CircleAvatar(
-                  backgroundColor: Colors.black12,
-                  child: Icon(Icons.favorite_border),
+                BlocBuilder<WishlistCubit, List<int>>(
+                  builder: (context, wishlist) {
+                    final isInWishlist = wishlist.contains(productId);
+                    return GestureDetector(
+                      onTap: () {
+                        if (isInWishlist) {
+                          context.read<WishlistCubit>().removeFromWishlist(productId);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Removed from wishlist')),
+                          );
+                        } else {
+                          context.read<WishlistCubit>().addToWishlist(productId);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Added to wishlist')),
+                          );
+                        }
+                      },
+                      child: CircleAvatar(
+                        backgroundColor: Colors.black12,
+                        child: Icon(
+                          isInWishlist ? Icons.favorite : Icons.favorite_border,
+                          color: isInWishlist ? Colors.red : Colors.grey,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            Center(
-              child: Image.network(
-                product['image_url'] ?? '',
-                height: 250,
-                errorBuilder: (context, error, stackTrace) {
-                  return Image.asset(
-                    "lib/assets/images/dummy_product.png",
-                    height: 250,
-                  );
-                },
+            Container(
+              height: 250,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.grey[200],
               ),
+              child: product['images'] != null &&
+                      product['images'] is List &&
+                      product['images'].isNotEmpty &&
+                      product['images'][0]['src'] != null
+                  ? Image.network(
+                      images[0]['src'],
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Center(child: Icon(Icons.broken_image, size: 60)),
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(child: CircularProgressIndicator());
+                      },
+                    )
+                  : const Center(child: Icon(Icons.image_not_supported, size: 60)),
             ),
             const SizedBox(height: 16),
             Text(
@@ -84,18 +119,26 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       IconButton(
                         icon: const Icon(Icons.remove),
                         onPressed: () {
-                          setState(() {
-                            if (quantity > 1) quantity--;
-                          });
+                          // Update the CartCubit state as well
+                          context.read<CartCubit>().decreaseQuantity(productId);
                         },
                       ),
-                      Text('$quantity', style: const TextStyle(fontSize: 18)),
+                      BlocBuilder<CartCubit, CartState>(
+                        builder: (context, state) {
+                          final cartItem = state.cartItems.firstWhere(
+                              (item) => productId == productId,
+                              orElse: () => CartModel(
+                                id: productId, quantity: 1, name: '', price: "0.0", total: "0.0", images: []));
+                          return Text(cartItem.quantity.toString(),
+                              style: const TextStyle(fontSize: 18));
+                        },
+                      ),
+                      //Text(quantity.toString(), style: const TextStyle(fontSize: 18)),
                       IconButton(
                         icon: const Icon(Icons.add),
                         onPressed: () {
-                          setState(() {
-                            quantity++;
-                          });
+                          // Update the CartCubit state as well
+                          context.read<CartCubit>().increaseQuantity(productId);
                         },
                       ),
                     ],
@@ -103,41 +146,22 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (isInCart) {
-                        cartCubit.deleteItem(index: cartCubit.state.cartList.indexWhere((item) => item.product_id == productId));
-                        Fluttertoast.showToast(
-                          msg: "${product['name']} removed from cart",
-                          gravity: ToastGravity.BOTTOM,
-                        );
-                      } else {
-                        cartCubit.addToCart(
-                          productID: productId,
-                          productName: product['name'],
-                          price: price,
-                          quantity: quantity,
-                          image: product['image_url'],
-                          //reward: reward,
-                          //uom: product['uom'],
-                        );
-                        Fluttertoast.showToast(
-                          msg: "${product['name']} added to cart",
-                          gravity: ToastGravity.BOTTOM,
-                        );
-                      }
-                      setState(() {}); // Refresh button label
+                  child: BlocBuilder<CartCubit, CartState>(
+                    builder: (context, state) {
+                      final productModel = Product.fromJson(widget.product);
+                      final isInCart = state.cartItems.any((item) => item.id == productModel.id);
+
+                      return ElevatedButton(
+                        onPressed: () {
+                          if (isInCart) {
+                            context.read<CartCubit>().removeFromCart(productModel.id);
+                          } else {
+                            context.read<CartCubit>().addToCart(productModel);
+                          }
+                        },
+                        child: Text(isInCart ? "Remove from Cart" : "Add to Cart"),
+                      );
                     },
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.black,
-                      backgroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.black),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: Text(isInCart ? 'Remove from Cart' : 'Add to Cart'),
                   ),
                 )
               ],

@@ -1,64 +1,50 @@
+// main_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:malabis_app/util/config/destination.dart';
-import 'package:malabis_app/util/constant.dart';
+import 'package:malabis_app/views/account/accounts.dart';
 import 'package:malabis_app/views/cart/cart.dart';
 import 'package:malabis_app/views/home/home_page.dart';
+import 'package:malabis_app/views/order/order_history.dart';
+import 'package:malabis_app/views/wishlist/wishlistscreen.dart';
+import 'package:malabis_app/logic/navigation/navigation_cubit.dart';
 
-class BottomNavBar extends StatefulWidget {
-  const BottomNavBar({super.key});
-
-  @override
-  _BottomNavBarState createState() => _BottomNavBarState();
-}
-
-class _BottomNavBarState extends State<BottomNavBar> {
-  int _index = 0;
-
-  List<Widget> allDestinations = [
-    const HomePage(),
-    const CartPage(cart: [],),
-    //const FavouritePage(),
-    //const OrdersPage(),
-    //const SettingsPage()
+class MainScaffold extends StatelessWidget {
+  final List<Widget> screens = [
+    HomePage(),
+    CartScreen(),
+    WishlistScreen(),
+    OrderHistoryScreen(customerId: 1),
+    AccountsScreen(),
   ];
+
+   MainScaffold({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        body: IndexedStack(
-          index:_index,
-          children: allDestinations,
-        ),
-        bottomNavigationBar: Container(
-          decoration: const BoxDecoration(
-            borderRadius: BorderRadius.only(
-                topRight: Radius.circular(20), topLeft: Radius.circular(20)),
-            boxShadow: [
-              BoxShadow(color: Colors.black38, spreadRadius: 0, blurRadius: 10),
-            ],
+    return BlocBuilder<NavigationCubit, NavigationState>(
+      builder: (context, state) {
+        return Scaffold(
+          body: IndexedStack(
+            index: state.selectedIndex,
+            children: screens,
           ),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(20.0),
-              topRight: Radius.circular(20.0),
-            ),
-            child: BottomNavigationBar(
-              currentIndex: _index,
-              onTap: (int index) {
-                setState(() {
-                  _index = index;
-                });
-              },
-              selectedItemColor: kUniversalColor,
-              type: BottomNavigationBarType.fixed,
-              items:
-                  Destinations.allDestinations.map((Destinations destinations) {
-                return BottomNavigationBarItem(
-                  icon: destinations.icon,
-                  label: destinations.title,
-                );
-              }).toList(),
-            ),
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: state.selectedIndex,
+            onTap: (index) =>
+                context.read<NavigationCubit>().updateIndex(index),
+            items: Destinations.allDestinations.map((destination) {
+              return BottomNavigationBarItem(
+                icon: destination.icon,
+                label: destination.title,
+              );
+            }).toList(),
+            selectedItemColor: Colors.blue,
+            unselectedItemColor: Colors.grey,
+            backgroundColor: Colors.white,
           ),
-        ));
+        );
+      },
+    );
   }
 }

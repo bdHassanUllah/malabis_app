@@ -1,4 +1,4 @@
-import 'package:graphql_flutter/graphql_flutter.dart';
+/*import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:malabis_app/data/providers/init_provider.dart';
 import 'package:malabis_app/util/gql_mutations.dart';
 import 'package:malabis_app/util/gql_queries.dart';
@@ -8,15 +8,9 @@ class HomeProvider {
   final GraphQLClient client;
   HomeProvider(this.client);
 
-  /*Future<QueryResult> getProductList() async {
-    final options = QueryOptions(
-      document: gql(listProductsQuery),
-    );
-    return await client.query(options);
-  }*/
 
 
-  Future<QueryResult> getCategoriesList() async {
+  /*Future<QueryResult> getCategoriesList() async {
     QueryOptions options = QueryOptions(document: gql(GQLQuries.categoryList));
 
     final result = await provider.client.query(options);
@@ -31,7 +25,7 @@ class HomeProvider {
     print("Banner API Result: ${result.data}");
 
     return result;
-  }
+  }*/
 
   Future<QueryResult> getProductList(Map<String, dynamic> variable) async {
     QueryOptions options = QueryOptions(
@@ -53,7 +47,7 @@ class HomeProvider {
     return result;
   }
 
-  Future<QueryResult> searchProducts(Map<String, dynamic> variable) async {
+  /*Future<QueryResult> searchProducts(Map<String, dynamic> variable) async {
     QueryOptions options =
         QueryOptions(document: gql(GQLQuries.searchQuery), variables: variable);
 
@@ -88,5 +82,44 @@ class HomeProvider {
     final result = await provider.client.query(options);
 
     return result;
+  }*/
+}*/
+import 'package:graphql_flutter/graphql_flutter.dart';
+
+class HomeProvider {
+  final GraphQLClient client;
+
+  HomeProvider(this.client);
+
+  Future<QueryResult> fetchProducts() async {
+  const String query = '''
+    query {
+      listProducts {
+        id
+        name
+        price
+        description
+        image
+      }
+    }
+  ''';
+  
+
+  try {
+    final options = QueryOptions(document: gql(query));
+    final result = await client.query(options);
+
+    if (result.hasException) {
+      print("GraphQL Exception: ${result.exception.toString()}");
+      throw Exception(result.exception.toString());
+    }
+
+    return result;
+  } catch (e) {
+    print("Error fetching products: $e");
+    rethrow;
   }
+  
 }
+}
+

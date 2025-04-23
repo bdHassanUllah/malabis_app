@@ -1,45 +1,40 @@
-import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:equatable/equatable.dart';
+import 'package:malabis_app/data/model/order_model.dart';
 
-class OrdersState {
-  final QueryResult? pendingOrdersResult;
-  final String? pendingOrderState;
-  final QueryResult? deliveredOrderResult;
-  final String? deliveredOrderStatus;
-  final QueryResult? canceledOrdersResult;
-  final String? canceledOrdersStatus;
-  final QueryResult? trackOrderResult;
-  final String? trackOrderStatus;
+abstract class OrderState extends Equatable {
+  const OrderState();
 
-  OrdersState({
-    this.pendingOrdersResult,
-    this.pendingOrderState = 'searching',
-    this.deliveredOrderResult,
-    this.deliveredOrderStatus = 'searching',
-    this.canceledOrdersResult,
-    this.canceledOrdersStatus = 'searching',
-    this.trackOrderResult,
-    this.trackOrderStatus = 'searching',
-  });
+  @override
+  List<Object?> get props => [];
+}
 
-  OrdersState copyWith({
-    QueryResult? pendingOrdersResult,
-    String? pendingOrderState,
-    QueryResult? deliveredOrderResult,
-    String? deliveredOrderStatus,
-    QueryResult? canceledOrdersResult,
-    String? canceledOrdersStatus,
-    QueryResult? trackOrderResult,
-    String? trackOrderStatus,
-  }) {
-    return OrdersState(
-      pendingOrdersResult: pendingOrdersResult ?? this.pendingOrdersResult,
-      pendingOrderState: pendingOrderState ?? this.pendingOrderState,
-      deliveredOrderResult: deliveredOrderResult ?? this.deliveredOrderResult,
-      deliveredOrderStatus: deliveredOrderStatus ?? this.deliveredOrderStatus,
-      canceledOrdersResult: canceledOrdersResult ?? this.canceledOrdersResult,
-      canceledOrdersStatus: canceledOrdersStatus ?? this.canceledOrdersStatus,
-      trackOrderResult: trackOrderResult ?? this.trackOrderResult,
-      trackOrderStatus: trackOrderStatus ?? this.trackOrderStatus,
-    );
-  }
+class OrderInitial extends OrderState {}
+
+class OrderLoading extends OrderState {}
+
+class OrderSuccess extends OrderState {
+  final List<OrderModel> orders;
+
+  const OrderSuccess(this.orders);
+
+  @override
+  List<Object?> get props => [orders];
+}
+
+class OrderPlaced extends OrderState {
+  final OrderModel order;
+
+  const OrderPlaced(this.order);
+
+  @override
+  List<Object?> get props => [order];
+}
+
+class OrderFailure extends OrderState {
+  final String error;
+
+  const OrderFailure(this.error);
+
+  @override
+  List<Object?> get props => [error];
 }

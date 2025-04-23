@@ -1,88 +1,109 @@
-import 'dart:convert';
-
+import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:malabis_app/apifiles/api.dart';
+import 'package:malabis_app/data/providers/navigation_provider.dart';
+import 'package:malabis_app/data/providers/orders_provider.dart';
+import 'package:malabis_app/data/repository/authentication_repository.dart';
 import 'package:malabis_app/data/repository/home_repository.dart';
+import 'package:malabis_app/data/repository/navigation_provider.dart';
 import 'package:malabis_app/data/repository/order_repository.dart';
-import 'package:malabis_app/firebase_options.dart';
 import 'package:malabis_app/logic/authentication/authentication_cubit.dart';
+import 'package:malabis_app/logic/authentication/authentication_state.dart';
 import 'package:malabis_app/logic/cart/cart_cubit.dart';
 import 'package:malabis_app/logic/home/home_cubit.dart';
-import 'package:malabis_app/logic/initcubit.dart';
+import 'package:malabis_app/logic/navigation/navigation_cubit.dart';
 import 'package:malabis_app/logic/order/orders_cubit.dart';
+import 'package:malabis_app/logic/whishlist/whishlistcubit.dart';
 import 'package:malabis_app/routes/custom_routes.dart';
+import 'package:malabis_app/views/authentication/signup/welcome_screen.dart';
+import 'package:malabis_app/views/bottom_navbar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initHiveForFlutter(); // Required for graphql_flutter cache
+  await Firebase.initializeApp();
+  Dio dio = Dio();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  const String username = 'ck_ed96ae2337106d3d2ebdb76c6b2649f276020e59';
-  const String password = 'cs_7e884138b2555a93783d20ca78e7aa78bb4f66f4';
-
-  final String basicAuth =
-      'Basic ${base64Encode(utf8.encode('$username:$password'))}';
-
-  final HttpLink httpLink = HttpLink(
-    'https://malabis.pk/graphql',
-    defaultHeaders: {
-      'Authorization': basicAuth,
-      'Content-Type': 'application/json',
-    },
-  );
-
-  final ValueNotifier<GraphQLClient> client = ValueNotifier(
-    GraphQLClient(
-      link: httpLink,
-      cache: GraphQLCache(store: HiveStore()),
-    ),
-  );
-  final homeRepository = HomeRepository();
-
-  runApp(MyApp(
-    graphQLClient: client,
-    homeRepository: homeRepository,
-  ));
+  runApp(MyApp(dio: dio));
 }
 
 class MyApp extends StatelessWidget {
-  final ValueNotifier<GraphQLClient> graphQLClient;
-  final HomeRepository homeRepository;
-
-  const MyApp({
-    super.key,
-    required this.graphQLClient,
-    required this.homeRepository,
-  });
+  final Dio dio;
+  const MyApp({super.key, required this.dio});
 
   @override
   Widget build(BuildContext context) {
-    return GraphQLProvider(
-      client: graphQLClient,
-      child: MultiBlocProvider(
-        providers: [
-          BlocProvider(create: (_) => InitCubit()),
-          BlocProvider(create: (_) => AuthenticationCubit()),
-          BlocProvider(create: (c) => HomeCubit()),
-          BlocProvider(create: (_) => CartCubit()),
-          BlocProvider(create: (_) => OrdersCubit(OrdersRepository())),
-        ],
-        child: MaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: 'Malabis App',
-          theme: ThemeData(
-            scaffoldBackgroundColor: Colors.white,
-            primarySwatch: Colors.blue,
-          ),
-          onGenerateRoute: CustomRoutes.allRoutes,
-          initialRoute: '/',
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider(create: (_) => NavigationProvider()),
+        RepositoryProvider(
+          create: (context) =>
+              NavigationRepository(context.read<NavigationProvider>()),
         ),
+        RepositoryProvider(create: (_) => WordPressApi()),
+        RepositoryProvider(
+            create: (_) => AuthRepository(FirebaseAuth.instance)),
+        RepositoryProvider(create: (_) => OrderProvider()),
+        RepositoryProvider(
+          create: (context) =>
+              HomeRepository(api: context.read<WordPressApi>()),
+        ),
+        RepositoryProvider(
+          create: (context) =>
+              OrderRepository(context.read<OrderProvider>()),
+        ),
+      ],
+      child: Builder(
+        builder: (context) {
+          return MultiBlocProvider(
+            providers: [
+              BlocProvider(create: (_) => NavigationCubit()),
+              BlocProvider<AuthCubit>(
+                create: (context) =>
+                    AuthCubit(context.read<AuthRepository>()),
+              ),
+              BlocProvider(create: (_) => WishlistCubit()),
+              BlocProvider<HomeCubit>(
+                create: (context) =>
+                    HomeCubit(context.read<HomeRepository>())..loadProducts(),
+              ),
+              BlocProvider(create: (_) => CartCubit()),
+              BlocProvider<OrderCubit>(
+                create: (context) =>
+                    OrderCubit(context.read<OrderRepository>()),
+              ),
+            ],
+            child: BlocBuilder<AuthCubit, AuthState>(
+              builder: (context, state) {
+                return MaterialApp(
+                  debugShowCheckedModeBanner: false,
+                  title: 'Malabis App',
+                  theme: ThemeData(
+                    scaffoldBackgroundColor: Colors.white,
+                    primarySwatch: Colors.blue,
+                  ),
+                  onGenerateRoute: CustomRoutes.allRoutes,
+                  home: _buildHome(state),
+                );
+              },
+            ),
+          );
+        },
       ),
     );
+  }
+
+  Widget _buildHome(AuthState state) {
+    if (state is AuthLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    } else if (state is AuthAuthenticated) {
+      return MainScaffold(); // 👈 Replaces BottomNavBar
+    } else {
+      return const WelcomeScreen();
+    }
   }
 }

@@ -1,74 +1,30 @@
-import 'package:bloc/bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:malabis_app/DTO/order%20DTO_files/order_request_dto.dart';
 import 'package:malabis_app/data/repository/order_repository.dart';
 import 'package:malabis_app/logic/order/orders_state.dart';
-import 'package:malabis_app/util/gql_queries.dart';
 
-class OrdersCubit extends Cubit<OrdersState> {
-  final OrdersRepository repository;
+class OrderCubit extends Cubit<OrderState> {
+  final OrderRepository repository;
 
-  OrdersCubit(this.repository) : super(OrdersState());
+  OrderCubit(this.repository) : super(OrderInitial());
 
-  void getPendingOrders(int userId) async {
-    emit(state.copyWith(pendingOrderState: 'searching'));
+  Future<void> fetchOrders(int customerId) async {
+    emit(OrderLoading());
     try {
-      final result = await repository.getPendingOrders(
-        GQLQuries.pendingOrdersQuery,
-        {'customer_id': userId},
-      );
-      emit(state.copyWith(
-        pendingOrdersResult: result,
-        pendingOrderState: 'loaded',
-      ));
+      final orders = await repository.getOrdersByCustomerId(customerId);
+      emit(OrderSuccess(orders));
     } catch (e) {
-      emit(state.copyWith(pendingOrderState: 'error'));
+      emit(OrderFailure('Failed to fetch orders: $e'));
     }
   }
 
-  void getDeliveredOrders(int userId) async {
-    emit(state.copyWith(deliveredOrderStatus: 'searching'));
+  Future<void> placeOrder(CreateOrderRequestDto orderData,) async {
+    emit(OrderLoading());
     try {
-      final result = await repository.getDeliveredOrders(
-        GQLQuries.deliveredOrderQuery,
-        {'customer_id': userId},
-      );
-      emit(state.copyWith(
-        deliveredOrderResult: result,
-        deliveredOrderStatus: 'loaded',
-      ));
+      final order = await repository.placeOrder(orderData.toJson());
+      emit(OrderPlaced(order));
     } catch (e) {
-      emit(state.copyWith(deliveredOrderStatus: 'error'));
-    }
-  }
-
-  void getCanceledOrders(int userId) async {
-    emit(state.copyWith(canceledOrdersStatus: 'searching'));
-    try {
-      final result = await repository.getCanceledOrders(
-        GQLQuries.canceledOrdersQuery,
-        {'customer_id': userId},
-      );
-      emit(state.copyWith(
-        canceledOrdersResult: result,
-        canceledOrdersStatus: 'loaded',
-      ));
-    } catch (e) {
-      emit(state.copyWith(canceledOrdersStatus: 'error'));
-    }
-  }
-
-  void trackOrder(int orderId) async {
-    emit(state.copyWith(trackOrderStatus: 'searching'));
-    try {
-      final result = await repository.trackOrder(
-        GQLQuries.trackOrderQuery,
-        {'id': orderId},
-      );
-      emit(state.copyWith(
-        trackOrderResult: result,
-        trackOrderStatus: 'loaded',
-      ));
-    } catch (e) {
-      emit(state.copyWith(trackOrderStatus: 'error'));
+      emit(OrderFailure('Failed to place order: $e'));
     }
   }
 }

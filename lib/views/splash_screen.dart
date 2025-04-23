@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:malabis_app/routes/routes_name.dart';
 import 'package:malabis_app/util/config/asset_config.dart';
@@ -15,7 +16,7 @@ class _SplashScreenState extends State<SplashScreen> {
     super.initState();
     //Set duration for splash screen 
     Future.delayed(const Duration(seconds: 3), () {
-      Navigator.pushReplacementNamed(context, homePage);
+      Navigator.pushReplacementNamed(context, welcomescreen);
     });
   }
 

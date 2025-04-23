@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:line_icons/line_icons.dart';
 
 class Destinations {
@@ -13,6 +13,6 @@ class Destinations {
         icon: const Icon(LineIcons.shoppingCartArrowDown), title: "Cart"),
     Destinations(icon: const Icon(LineIcons.heart), title: "Favourite"),
     Destinations(icon: const Icon(LineIcons.box), title: "Orders"),
-    Destinations(icon: const Icon(LineIcons.cog), title: "Settings"),
+    Destinations(icon: const Icon(LineIcons.user), title: "Accounts"),
   ];
 }
